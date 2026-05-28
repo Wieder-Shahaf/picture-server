@@ -31,6 +31,10 @@ def register_error_handlers(app):
     def _405(e):
         return make_error(405, "Method not allowed")
 
+    @app.errorhandler(413)
+    def _413(e):
+        return make_error(413, "Request body too large")
+
     @app.errorhandler(500)
     def _500(e):
         return make_error(500, "Internal server error")

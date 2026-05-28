@@ -302,10 +302,15 @@
     return { file: out, note: `transcoded ${origFmt} → jpeg` };
   }
 
+  const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
   async function loadFile(f) {
     if (!f) return;
     if (!f.type || !f.type.startsWith("image/")) {
       renderResults([], `not an image (got "${f.name || f.type}")`, true);
+      return;
+    }
+    if (f.size > MAX_UPLOAD_BYTES) {
+      renderResults([], `file is ${fmtBytes(f.size)} — server cap is 25 MB`, true);
       return;
     }
     let normalized;

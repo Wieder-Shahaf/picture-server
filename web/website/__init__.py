@@ -9,10 +9,14 @@ from website.models import close_conn, init_db
 from website.views import views as views_bp
 
 
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB cap on request body
+
+
 def create_app():
     app = Flask(__name__)
     app.url_map.strict_slashes = False
     app.config["SECRET_KEY"] = os.environ.get("JWT_SECRET", "dev-only-change-me")
+    app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_BYTES
 
     register_error_handlers(app)
     init_db()
