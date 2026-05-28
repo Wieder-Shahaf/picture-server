@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-auth="out">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PictureServer · by you</title>
+<title>PictureServer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -11,163 +11,172 @@
 </head>
 <body>
 
-<header class="top">
+<a href="#main" class="skip-link">Skip to content</a>
+
+<header class="top" role="banner">
   <div class="brand">
-    <div class="brand-block">
-      <div class="brand-mark">Picture<span class="accent">.</span>Server</div>
-      <div class="brand-sub">by you</div>
-    </div>
+    <div class="brand-mark">Picture<span class="accent">.</span>Server</div>
+    <div class="brand-sub">image classification · http</div>
   </div>
-
-  <nav class="top-nav">
-    <a href="#" class="active">LIVE</a>
-    <span class="sep">|</span>
-    <a href="#endpoints">ENDPOINTS</a>
-    <span class="sep">|</span>
-    <a href="#account">ACCOUNT</a>
-    <span class="sep">|</span>
-    <a href="#classify">CLASSIFY</a>
-    <span class="sep">|</span>
-    <a href="https://github.com" id="docs">DOCS</a>
-  </nav>
-
   <div class="top-right">
-    <a class="gh" href="{{ github_url }}" target="_blank" rel="noopener">
+    <a class="gh" href="{{ github_url }}" target="_blank" rel="noopener" aria-label="View source on GitHub">
       <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
         <path fill="currentColor" d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-2.02c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.51-1.47.11-3.07 0 0 .97-.31 3.18 1.18.92-.26 1.91-.39 2.89-.39.98 0 1.97.13 2.89.39 2.21-1.49 3.18-1.18 3.18-1.18.62 1.6.23 2.78.11 3.07.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.15v3.18c0 .31.21.67.8.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/>
       </svg>
-      <span>VIEW ON GITHUB</span>
-      <span class="ext">↗</span>
+      <span class="gh-label">GitHub</span>
+      <span class="ext" aria-hidden="true">↗</span>
     </a>
   </div>
 </header>
 
-<section class="tabs">
-  <div class="tab-label">Live Endpoints</div>
-  <button class="tab is-active" data-tab="status">1: /status</button>
-  <button class="tab" data-tab="account">2: /register · /login · /logout</button>
-  <button class="tab" data-tab="classify">3: /classifier</button>
-  <button class="tab" data-tab="log">4: HTTP log</button>
-  <div class="ticker">
-    <div class="cell"><div class="k"><span class="dot" id="d-health"></span> HEALTH</div><div class="v" id="m-health">—</div></div>
-    <div class="cell"><div class="k">UPTIME</div><div class="v" id="m-uptime">—</div></div>
-    <div class="cell"><div class="k">SUCCESS</div><div class="v ok" id="m-success">—</div></div>
-    <div class="cell"><div class="k">FAIL</div><div class="v err" id="m-fail">—</div></div>
-    <div class="cell"><div class="k">API</div><div class="v" id="m-api">—</div></div>
+<section class="status-strip" id="status-strip" aria-live="polite">
+  <div class="status-empty" data-show="out">
+    <span class="dot" aria-hidden="true"></span>
+    <span><strong>auth required</strong> · sign in below to view live metrics</span>
+  </div>
+  <div class="status-live" data-show="in">
+    <span class="cell"><span class="k"><span class="dot" id="d-health" aria-hidden="true"></span>HEALTH</span><span class="v" id="m-health">—</span></span>
+    <span class="cell"><span class="k">UPTIME</span><span class="v" id="m-uptime">—</span></span>
+    <span class="cell"><span class="k">SUCCESS</span><span class="v ok" id="m-success">0</span></span>
+    <span class="cell"><span class="k">FAIL</span><span class="v err" id="m-fail">0</span></span>
+    <span class="cell"><span class="k">API</span><span class="v" id="m-api">v1</span></span>
   </div>
 </section>
 
-<div class="banner">
-  This page is an interactive client for the PictureServer JSON API defined in <code>interface.md</code>.
-</div>
+<main class="page" id="main">
+  <div class="content">
 
-<div class="layout">
-  <main class="main">
-
-    <div class="update">
-      <span class="label">UPDATE:</span>
-      The server boots a real <strong>YOLOv8n‑cls</strong> classifier behind a strict JSON contract.
-      Each <code>/classifier</code> success increments <span class="money">success</span> and each
-      malformed upload increments <strong style="color:var(--err)">fail</strong>.
-      Try it below — the box on the right logs every HTTP round‑trip in real time.
-    </div>
-
-    <p>
-      The protocol mandates one error envelope and exact response shapes. Tokens are
-      JWT HS256 with persistent revocation; <code>/logout</code> actually invalidates the token.
-      <code>/status.uptime</code> is fractional and monotonic. Scores are strictly in
-      <code>(0, 1]</code> and sum to at most 1.
+    <p class="lede">
+      Interactive client for the <strong>PictureServer</strong> JSON API.
+      JWT auth · YOLOv8n‑cls classifier · scores in <code>(0, 1]</code> summing to ≤ 1.
     </p>
 
-    <p class="dim">
-      If you are excited to build a strictly‑compliant image server for an interop testing
-      arena, get in touch.
-    </p>
-
-    <h2 class="title" id="account">// account</h2>
-
-    <div class="card yellow" id="card-auth">
+    <!-- ── AUTHENTICATION ── /register · /login · /logout -->
+    <section class="card yellow" id="card-auth" aria-labelledby="card-auth-h">
       <div class="card-head">
-        <span>SESSION</span>
-        <div class="minitabs">
-          <button class="mtab is-active" data-mtab="login">LOG IN</button>
-          <button class="mtab" data-mtab="register">REGISTER</button>
+        <h2 class="card-title" id="card-auth-h">
+          <span data-show="out">SIGN IN</span>
+          <span data-show="in"><span class="dot ok" aria-hidden="true"></span>@<span id="who">—</span></span>
+        </h2>
+        <div class="card-actions">
+          <code class="endpoint-tag" data-show="out">POST /register · /login</code>
+          <code class="endpoint-tag" data-show="in">POST /logout</code>
+          <button class="ghost xs" id="btn-logout" type="button" data-show="in">Log out</button>
         </div>
       </div>
-      <div class="card-body">
-        <form id="auth-form" autocomplete="off">
-          <label>username
-            <input name="username" required minlength="1" autocomplete="username">
+
+      <form id="auth-form" class="card-body auth-body" data-show="out" autocomplete="off">
+        <div class="field-row">
+          <label class="field">
+            <span class="lbl">username</span>
+            <input name="username" required minlength="1" autocomplete="username" spellcheck="false" inputmode="text">
           </label>
-          <label>password
+          <label class="field">
+            <span class="lbl">password</span>
             <input name="password" type="password" required minlength="1" autocomplete="current-password">
           </label>
-          <button type="submit"><span data-text>LOG IN</span> →</button>
-          <p class="hint" id="auth-msg">&nbsp;</p>
-        </form>
-      </div>
-    </div>
+          <button type="submit" class="primary submit-auth">
+            <span data-text>Sign in</span>
+            <span aria-hidden="true">→</span>
+            <span class="spinner" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="field-meta">
+          <p class="hint" id="auth-msg" aria-live="polite"></p>
+          <button type="button" class="mode-toggle" id="mode-toggle">
+            <span data-mode-text>No account? Create one →</span>
+          </button>
+        </div>
+      </form>
 
-    <div class="card green" id="card-session" hidden>
+      <div class="card-body signed-body" data-show="in">
+        <p class="signed-meta">
+          Session token in <code>localStorage</code>.
+          <code>/logout</code> revokes the JTI persistently.
+        </p>
+      </div>
+    </section>
+
+    <!-- ── CLASSIFIER ── POST /classifier -->
+    <section class="card pink" id="card-upload" data-locked="true" aria-labelledby="card-upload-h">
       <div class="card-head">
-        <span>LOGGED IN AS <strong id="who">—</strong></span>
-        <div class="actions">
-          <button class="ghost" id="btn-logout">LOG OUT</button>
+        <h2 class="card-title" id="card-upload-h">CLASSIFY IMAGE</h2>
+        <div class="card-actions">
+          <code class="endpoint-tag">POST /classifier</code>
+          <span class="card-meta">PNG · JPEG</span>
         </div>
       </div>
-      <div class="card-body">
-        <p class="dim">Session token kept in localStorage. <code>/logout</code> revokes it persistently.</p>
-      </div>
-    </div>
 
-    <h2 class="title" id="classify">// classify</h2>
-
-    <div class="card pink" id="card-upload">
-      <div class="card-head">
-        <span>UPLOAD IMAGE → /classifier</span>
-        <span class="dim" style="font-weight:500;text-transform:none;letter-spacing:0">PNG · JPEG only</span>
-      </div>
       <div class="card-body">
-        <label class="dropzone" id="dropzone">
+        <!-- Dropzone (full-size when empty, slim when a file is staged) -->
+        <label class="dropzone" id="dropzone" tabindex="0">
           <input type="file" id="file" accept="image/png,image/jpeg" hidden>
-          <span class="dz-title">Drop a PNG or JPEG</span>
-          <span class="dz-sub">or click to choose · must end in .png or .jpeg</span>
+          <svg viewBox="0 0 24 24" class="dz-icon" width="28" height="28" aria-hidden="true">
+            <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"
+              d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3M12 4v12m0-12-4 4m4-4 4 4"/>
+          </svg>
+          <span class="dz-title" data-dz-title>Drop a PNG or JPEG</span>
+          <span class="dz-sub"   data-dz-sub>or click to browse · must end in .png or .jpeg</span>
         </label>
-        <div class="preview" id="preview" hidden>
-          <img id="preview-img" alt="preview">
-          <button id="btn-classify">CLASSIFY →</button>
+
+        <!-- Staged file -->
+        <div class="staged" id="staged" hidden>
+          <div class="staged-row">
+            <img class="staged-thumb" id="preview-img" alt="">
+            <div class="staged-meta">
+              <span class="staged-name" id="preview-name"></span>
+              <span class="staged-size dim" id="preview-size"></span>
+            </div>
+            <button class="icon-btn" id="btn-remove-file" type="button" aria-label="Remove file">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+            <button class="primary classify-btn" id="btn-classify" type="button">
+              <span data-text>Classify</span>
+              <span aria-hidden="true">→</span>
+              <span class="spinner" aria-hidden="true"></span>
+            </button>
+          </div>
         </div>
-        <div class="results" id="results"></div>
+
+        <!-- Results -->
+        <div class="results" id="results" aria-live="polite">
+          <p class="empty-line" id="results-empty">No classifications yet · upload an image to begin</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ── HTTP LOG ── observability aside -->
+  <aside class="aside" id="aside" aria-labelledby="log-h">
+    <div class="aside-head">
+      <h2 class="card-title" id="log-h">HTTP LOG</h2>
+      <div class="aside-tools">
+        <label class="filter-inline">
+          <span class="dim">show</span>
+          <select id="log-filter" aria-label="filter log">
+            <option value="all">all</option>
+            <option value="ok">2xx</option>
+            <option value="err">errors</option>
+          </select>
+        </label>
+        <button class="icon-btn" id="btn-clear" type="button" aria-label="Clear log" hidden>
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
       </div>
     </div>
-
-  </main>
-
-  <aside class="aside">
-    <div class="aside-head">
-      <div class="h is-active">HTTPLOG</div>
-      <div class="h">SESSION DETAILS</div>
+    <div class="log-list" id="log" role="log">
+      <p class="empty-line" id="log-empty">Every HTTP round‑trip lands here.</p>
     </div>
-    <div class="aside-tools">
-      FILTER:
-      <select id="log-filter">
-        <option value="all">ALL REQUESTS</option>
-        <option value="ok">2XX ONLY</option>
-        <option value="err">ERRORS ONLY</option>
-      </select>
-      <button class="ghost" id="btn-clear" style="margin-left:auto;padding:.2rem .55rem;font-size:.7rem">CLEAR</button>
-    </div>
-    <div class="log-list" id="log"></div>
   </aside>
-</div>
+
+</main>
 
 <footer class="foot">
   <span>© {{ year }}</span>
-  <span class="sep">|</span>
-  <span>spec: <a href="https://github.com">interface.md</a></span>
-  <span class="sep">|</span>
-  <span>flask + ultralytics</span>
-  <span class="sep">|</span>
+  <span class="sep" aria-hidden="true">·</span>
+  <span>flask + ultralytics yolov8n‑cls</span>
+  <span class="sep" aria-hidden="true">·</span>
   <span><a href="{{ github_url }}" target="_blank" rel="noopener">source ↗</a></span>
 </footer>
 
