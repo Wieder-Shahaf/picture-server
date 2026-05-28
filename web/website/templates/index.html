@@ -103,20 +103,20 @@
         <h2 class="card-title" id="card-upload-h">CLASSIFY IMAGE</h2>
         <div class="card-actions">
           <code class="endpoint-tag">POST /classifier</code>
-          <span class="card-meta">PNG · JPEG</span>
+          <span class="card-meta">any image · normalized to jpeg</span>
         </div>
       </div>
 
       <div class="card-body">
         <!-- Dropzone (full-size when empty, slim when a file is staged) -->
-        <label class="dropzone" id="dropzone" tabindex="0">
-          <input type="file" id="file" accept="image/png,image/jpeg" hidden>
+        <label class="dropzone" id="dropzone" tabindex="0" for="file">
+          <input type="file" id="file" name="file" accept="image/*" class="visually-hidden">
           <svg viewBox="0 0 24 24" class="dz-icon" width="28" height="28" aria-hidden="true">
             <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"
               d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3M12 4v12m0-12-4 4m4-4 4 4"/>
           </svg>
-          <span class="dz-title" data-dz-title>Drop a PNG or JPEG</span>
-          <span class="dz-sub"   data-dz-sub>or click to browse · must end in .png or .jpeg</span>
+          <span class="dz-title" data-dz-title>Drop or click to upload an image</span>
+          <span class="dz-sub"   data-dz-sub>png · jpg · jpeg · webp · gif · bmp · others are transcoded to jpeg</span>
         </label>
 
         <!-- Staged file -->

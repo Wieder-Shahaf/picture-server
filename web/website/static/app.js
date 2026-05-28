@@ -123,8 +123,8 @@
     const dzt = $("[data-dz-title]");
     const dzs = $("[data-dz-sub]");
     if (authed) {
-      dzt.textContent = "Drop a PNG or JPEG";
-      dzs.textContent = "or click to browse · must end in .png or .jpeg";
+      dzt.textContent = "Drop or click to upload an image";
+      dzs.textContent = "png · jpg · jpeg · webp · gif · bmp · others are transcoded to jpeg";
     } else {
       dzt.textContent = "Sign in to enable upload";
       dzs.textContent = "the /classifier endpoint requires Bearer auth";
@@ -235,22 +235,77 @@
     if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
     return `${(n / 1024 / 1024).toFixed(2)} MB`;
   }
-  function loadFile(f) {
+
+  function readDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = () => reject(new Error("read failed"));
+      r.readAsDataURL(file);
+    });
+  }
+  function loadImageEl(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("decode failed"));
+      img.src = src;
+    });
+  }
+  /**
+   * Normalize the file to something the server accepts (interface.md mandates
+   * .png or .jpeg). .jpg gets renamed; anything else gets canvas-transcoded
+   * to JPEG.  Returns the normalized File (may be the original).
+   */
+  async function normalizeForServer(file) {
+    const lowName = (file.name || "image").toLowerCase();
+    if (file.type === "image/png"  && lowName.endsWith(".png"))  return { file, note: null };
+    if (file.type === "image/jpeg" && lowName.endsWith(".jpeg")) return { file, note: null };
+    if (file.type === "image/jpeg" && lowName.endsWith(".jpg")) {
+      const renamed = new File([file], lowName.replace(/\.jpg$/i, ".jpeg"), { type: "image/jpeg" });
+      return { file: renamed, note: "renamed .jpg → .jpeg" };
+    }
+    // Everything else: transcode to JPEG via canvas
+    const dataUrl = await readDataURL(file);
+    const img = await loadImageEl(dataUrl);
+    const canvas = document.createElement("canvas");
+    canvas.width  = img.naturalWidth || img.width;
+    canvas.height = img.naturalHeight || img.height;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#fff";              // flatten alpha to white
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/jpeg", 0.92);
+    });
+    const base = (file.name || "image").replace(/\.[^.]+$/, "") || "image";
+    const out = new File([blob], `${base}.jpeg`, { type: "image/jpeg" });
+    const origFmt = (file.type || lowName.split(".").pop() || "unknown").replace("image/", "");
+    return { file: out, note: `transcoded ${origFmt} → jpeg` };
+  }
+
+  async function loadFile(f) {
     if (!f) return;
-    const okType = f.type === "image/png" || f.type === "image/jpeg";
-    const okName = /\.(png|jpeg)$/i.test(f.name);
-    if (!okType || !okName) {
-      renderResults([], `only .png / .jpeg accepted (got "${f.name}")`, true);
+    if (!f.type || !f.type.startsWith("image/")) {
+      renderResults([], `not an image (got "${f.name || f.type}")`, true);
       return;
     }
-    state.file = f;
+    let normalized;
+    try {
+      normalized = await normalizeForServer(f);
+    } catch (e) {
+      renderResults([], `couldn't decode ${f.name}: ${e.message}`, true);
+      return;
+    }
+    state.file = normalized.file;
     stagedEl.hidden = false;
     cardUpload.classList.add("has-staged");
-    previewName.textContent = f.name;
-    previewSize.textContent = fmtBytes(f.size);
+    previewName.textContent = normalized.file.name;
+    const noteSuffix = normalized.note ? ` · ${normalized.note}` : "";
+    previewSize.textContent = fmtBytes(normalized.file.size) + noteSuffix;
     const reader = new FileReader();
     reader.onload = (e) => (previewImg.src = e.target.result);
-    reader.readAsDataURL(f);
+    reader.readAsDataURL(normalized.file);
   }
   function clearStagedFile() {
     state.file = null;
@@ -261,7 +316,8 @@
     previewSize.textContent = "";
     fileInput.value = "";
   }
-  dz.addEventListener("click", () => { if (state.token) fileInput.click(); });
+  // <label> wrapping <input type="file"> opens the file dialog natively on click.
+  // We only need a keyboard handler so the focusable label responds to Enter/Space.
   dz.addEventListener("keydown", (e) => {
     if ((e.key === "Enter" || e.key === " ") && state.token) {
       e.preventDefault(); fileInput.click();
