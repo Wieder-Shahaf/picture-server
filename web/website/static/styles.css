@@ -759,9 +759,34 @@ html[data-auth="in"]  #card-upload      { opacity: 1; }
   .brand { padding: .65rem 1rem; }
   .top-right { padding: 0 1rem; }
   .gh-label { display: none; }
-  .status-strip { padding: .55rem 1rem; min-height: 0; flex-wrap: wrap; }
-  .status-live .cell { padding: .15rem .55rem .15rem 0; border-right: none; }
-  .status-live .cell:not(:last-child)::after { content: "·"; color: var(--line-soft); padding-left: .55rem; }
+
+  /* Status strip: keep the single-row look from desktop and let the user
+     scroll horizontally on narrow screens. Pipe-style dividers between
+     cells are preserved (no bullet fallback). */
+  .status-strip {
+    padding: 0 1rem;
+    min-height: var(--strip-h);
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-soft) transparent;
+    -webkit-overflow-scrolling: touch;
+    /* tiny fade on the right edge hints that content can be scrolled */
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
+            mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
+  }
+  .status-strip::-webkit-scrollbar { height: 3px; }
+  .status-strip::-webkit-scrollbar-thumb { background: var(--line-soft); }
+  .status-live { flex-wrap: nowrap; min-width: max-content; }
+  .status-live .cell {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 0 .9rem;
+    border-right: 1px solid var(--line-xs);
+  }
+  .status-live .cell:last-child { border-right: none; padding-right: 1.25rem; }
+
   .field-row { grid-template-columns: 1fr; }
   .field-row .submit-auth { width: 100%; justify-content: center; }
   .field-meta { flex-direction: column; align-items: flex-start; }
