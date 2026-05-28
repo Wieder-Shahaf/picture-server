@@ -70,7 +70,7 @@
     });
   }
 
-  async function api(method, path, { body, isForm = false, auth = true } = {}) {
+  async function api(method, path, { body, isForm = false, auth = true, silent = false } = {}) {
     const headers = {};
     if (auth && state.token) headers["Authorization"] = `Bearer ${state.token}`;
     let payload;
@@ -85,23 +85,40 @@
       raw = await res.text();
       try { data = JSON.parse(raw); } catch (_) { data = raw; }
     } catch (e) {
-      logEntry(method, path, 0, "network error");
+      if (!silent) logEntry(method, path, 0, "network error");
       throw e;
     }
-    const msg =
-      (data && data.error && data.error.message) ||
-      (data && data.message) ||
-      (data && data.token   ? "token issued" : "") ||
-      (data && data.matches ? `${data.matches.length} matches` : "") ||
-      statusLabel(res.status);
-    logEntry(method, path, res.status, msg);
+    // Quiet polls never write to the visible log unless something went wrong.
+    const shouldLog = !silent || res.status >= 400;
+    if (shouldLog) {
+      const msg =
+        (data && data.error && data.error.message) ||
+        (data && data.message) ||
+        (data && data.token   ? "token issued" : "") ||
+        (data && data.matches ? `${data.matches.length} matches` : "") ||
+        statusLabel(res.status);
+      logEntry(method, path, res.status, msg);
+    }
     return { res, data };
+  }
+
+  /* Subtle 200-tick on the HEALTH led — runs the ring animation once. */
+  function pingHealth() {
+    const ring = $("#d-ring");
+    if (!ring) return;
+    ring.classList.remove("is-tick");
+    // force reflow so animation can restart
+    void ring.offsetWidth;
+    ring.classList.add("is-tick");
   }
 
   /* ─────────── ticker / status ─────────── */
   async function refreshStatus() {
     if (!state.token) return;
-    const { res, data } = await api("GET", "/status");
+    let res, data;
+    try {
+      ({ res, data } = await api("GET", "/status", { silent: true }));
+    } catch (_) { return; }
     if (res.status === 401) { clearSession(); return; }
     if (res.status === 200 && data?.status) {
       const s = data.status;
@@ -113,6 +130,7 @@
       h.className = "v " + (s.health === "ok" ? "ok" : "err");
       d.className = "dot " + (s.health === "ok" ? "ok" : "err");
       $("#m-api").textContent = "v" + s.api_version;
+      pingHealth();
     }
   }
 
@@ -339,6 +357,7 @@
     const btn = $("#btn-classify");
     btn.disabled = true;
     btn.classList.add("is-loading");
+    cardUpload.classList.add("is-busy");
     try {
       const fd = new FormData();
       fd.append("image", state.file, state.file.name);
@@ -351,6 +370,7 @@
     } finally {
       btn.disabled = false;
       btn.classList.remove("is-loading");
+      cardUpload.classList.remove("is-busy");
       refreshStatus();
     }
   });

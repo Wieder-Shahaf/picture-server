@@ -15,6 +15,16 @@
   --line-soft: rgba(13, 13, 13, 0.16);
   --line-xs:   rgba(13, 13, 13, 0.08);
 
+  /* Single unified card surface (warm vellum). Differentiation is by state, not by hue. */
+  --c-paper:  #ece5d0;
+  --c-paper-strong: #e3dabe;   /* card head bg */
+  /* State accents (semantic, used for left-edge strip only) */
+  --acc-attn: #b94b3e;          /* attention required (auth out) */
+  --acc-ok:   #3f7c4d;          /* verified / signed in */
+  --acc-lock: #8a857a;          /* locked / disabled */
+  --acc-ready:#3a5fa2;          /* ready / awaiting action */
+  --acc-busy: #c98b15;          /* in progress */
+  /* Legacy pastel tokens kept so existing references still resolve. */
   --p-cream:  #efe9d6;
   --p-yellow: #f1e7b3;
   --p-pink:   #f3d6dd;
@@ -139,6 +149,9 @@ code {
   align-items: center;
   padding: 0 1.25rem;
   font-size: .76rem;
+  position: sticky;
+  top: var(--top-h);
+  z-index: 49;
 }
 .status-empty {
   display: none;
@@ -199,6 +212,33 @@ code {
 .status-live .dot.ok  { background: var(--ok); }
 .status-live .dot.err { background: var(--err); animation: pulse 1.5s infinite; }
 
+/* HEALTH led wrapper: a steady dot + a subtle gray ring that ticks
+   each time a /status check returns 200. */
+.health-led {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px; height: 14px;
+  margin-right: .35rem;
+}
+.health-led .dot { margin: 0; }
+.health-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  border-top-color: rgba(13, 13, 13, 0.45);
+  opacity: 0;
+  pointer-events: none;
+}
+.health-ring.is-tick { animation: tick 700ms ease-out 1; }
+@keyframes tick {
+  0%   { opacity: 0;   transform: rotate(0deg); }
+  25%  { opacity: .7;  transform: rotate(180deg); }
+  100% { opacity: 0;   transform: rotate(360deg); }
+}
+
 html[data-auth="out"] .status-empty { display: flex; }
 html[data-auth="in"]  .status-live  { display: flex; }
 
@@ -207,12 +247,13 @@ html[data-auth="in"]  .status-live  { display: flex; }
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
   min-height: calc(100vh - var(--top-h) - var(--strip-h) - 50px);
+  max-width: 1400px;
+  margin: 0 auto;
 }
 .content {
   padding: 2rem 2rem 4rem;
-  border-right: 1px solid var(--line);
-  max-width: 880px;
   width: 100%;
+  min-width: 0;
 }
 .aside {
   background: var(--bg);
@@ -221,6 +262,7 @@ html[data-auth="in"]  .status-live  { display: flex; }
   position: sticky;
   top: calc(var(--top-h) + var(--strip-h));
   height: calc(100vh - var(--top-h) - var(--strip-h));
+  border-left: 1px solid var(--line);
 }
 
 .lede {
@@ -230,25 +272,44 @@ html[data-auth="in"]  .status-live  { display: flex; }
   padding: .7rem 1rem;
   border: 1px solid var(--line);
   background: var(--bg-3);
-  border-left: 4px solid var(--err);
-  max-width: 70ch;
 }
 .lede strong { color: var(--fg); }
 
-/* ============ CARDS ============ */
+/* ============ CARDS ============
+   One unified vellum surface. A 4-px left-edge strip carries semantic state.
+   Hue is meaningful, not decorative:
+     attention required (auth out)  = muted brick
+     verified (signed in)           = muted forest
+     locked (waiting for auth)      = muted stone
+     ready (signed in, awaiting)    = muted indigo
+============================================ */
 .card {
   border: 1px solid var(--line);
-  background: var(--p-cream);
+  background: var(--c-paper);
   margin: 0 0 1.5rem;
   position: relative;
   transition: opacity .25s ease;
 }
-.card.yellow { background: var(--p-yellow); }
-.card.pink   { background: var(--p-pink); }
-.card.green  { background: var(--p-green); }
-.card.blue   { background: var(--p-blue); }
+.card::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--acc-lock);
+  transition: background .25s ease;
+}
 
-.card[data-locked="true"] { opacity: .55; }
+/* Auth card state */
+#card-auth[data-state="needs-auth"]::before { background: var(--acc-attn); }
+html[data-auth="in"] #card-auth::before     { background: var(--acc-ok); }
+
+/* Classifier card state */
+#card-upload[data-locked="true"]::before    { background: var(--acc-lock); }
+html[data-auth="in"] #card-upload::before   { background: var(--acc-ready); }
+#card-upload.is-busy::before                { background: var(--acc-busy); animation: accent-pulse 1.2s ease-in-out infinite; }
+@keyframes accent-pulse { 50% { opacity: .5; } }
+
+.card[data-locked="true"] { opacity: .65; }
 .card[data-locked="true"] .card-body * { pointer-events: none; }
 .card[data-locked="true"]::after {
   content: "";
@@ -456,16 +517,8 @@ button.is-loading [data-text] { opacity: .7; }
 .dz-title { font-weight: 700; font-size: .95rem; color: var(--fg); }
 .dz-sub   { font-size: .72rem; color: var(--muted); }
 
-/* When file is staged, dropzone shrinks to a slim line */
-.has-staged .dropzone {
-  padding: .55rem .8rem;
-  flex-direction: row;
-  gap: .65rem;
-  justify-content: flex-start;
-}
-.has-staged .dz-icon  { width: 16px; height: 16px; }
-.has-staged .dz-title { font-size: .76rem; }
-.has-staged .dz-sub   { display: none; }
+/* When file is staged, hide the dropzone entirely — only the staged row remains */
+.has-staged .dropzone { display: none; }
 
 /* ============ STAGED FILE ============ */
 .staged { margin-top: .85rem; }
@@ -534,9 +587,10 @@ button.is-loading [data-text] { opacity: .7; }
   font-weight: 700;
   font-size: .88rem;
   font-variant-numeric: tabular-nums;
-  color: var(--fg-2);
+  color: var(--fg);
 }
-.results .row:first-child .score { color: var(--err); }
+.results .row:first-child .name  { font-weight: 700; }
+.results .row:first-child .bar > i { background: var(--fg); }
 .results .bar {
   grid-column: 1 / -1;
   height: 4px;
@@ -691,8 +745,13 @@ html[data-auth="in"]  #card-upload      { opacity: 1; }
 /* small tablet / large mobile */
 @media (max-width: 920px) {
   .page { grid-template-columns: 1fr; }
-  .content { border-right: none; max-width: none; }
-  .aside { position: static; height: auto; max-height: 380px; border-top: 1px solid var(--line); }
+  .aside {
+    position: static;
+    height: auto;
+    max-height: 380px;
+    border-top: 1px solid var(--line);
+    border-left: none;
+  }
 }
 
 /* mobile */

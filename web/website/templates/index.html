@@ -35,7 +35,7 @@
     <span><strong>auth required</strong> · sign in below to view live metrics</span>
   </div>
   <div class="status-live" data-show="in">
-    <span class="cell"><span class="k"><span class="dot" id="d-health" aria-hidden="true"></span>HEALTH</span><span class="v" id="m-health">—</span></span>
+    <span class="cell"><span class="k"><span class="health-led" aria-hidden="true"><span class="health-ring" id="d-ring"></span><span class="dot" id="d-health"></span></span>HEALTH</span><span class="v" id="m-health">—</span></span>
     <span class="cell"><span class="k">UPTIME</span><span class="v" id="m-uptime">—</span></span>
     <span class="cell"><span class="k">SUCCESS</span><span class="v ok" id="m-success">0</span></span>
     <span class="cell"><span class="k">FAIL</span><span class="v err" id="m-fail">0</span></span>
@@ -52,7 +52,7 @@
     </p>
 
     <!-- ── AUTHENTICATION ── /register · /login · /logout -->
-    <section class="card yellow" id="card-auth" aria-labelledby="card-auth-h">
+    <section class="card" id="card-auth" data-state="needs-auth" aria-labelledby="card-auth-h">
       <div class="card-head">
         <h2 class="card-title" id="card-auth-h">
           <span data-show="out">SIGN IN</span>
@@ -98,7 +98,7 @@
     </section>
 
     <!-- ── CLASSIFIER ── POST /classifier -->
-    <section class="card pink" id="card-upload" data-locked="true" aria-labelledby="card-upload-h">
+    <section class="card" id="card-upload" data-locked="true" aria-labelledby="card-upload-h">
       <div class="card-head">
         <h2 class="card-title" id="card-upload-h">CLASSIFY IMAGE</h2>
         <div class="card-actions">
@@ -174,6 +174,8 @@
 
 <footer class="foot">
   <span>© {{ year }}</span>
+  <span class="sep" aria-hidden="true">·</span>
+  <span>built by Shahaf, Barak and Max</span>
   <span class="sep" aria-hidden="true">·</span>
   <span>flask + ultralytics yolov8n‑cls</span>
   <span class="sep" aria-hidden="true">·</span>
