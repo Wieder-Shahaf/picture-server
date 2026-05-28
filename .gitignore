@@ -16,10 +16,12 @@ yolov8n-cls.pt
 # Course materials (not for public distribution)
 *.pdf
 
-.claude
-CLAUDE.md
+.claude/
+
 # QA stress-suite fixtures (auto-generated)
 qa/_fixtures/
 
+# Project-local files — not for the public repo
 CLAUDE.md
-PLAN.md
+PLAN.html
+HW1_ID1_ID2_ID3.txt

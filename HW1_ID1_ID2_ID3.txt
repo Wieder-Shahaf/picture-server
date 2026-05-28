@@ -1,2 +1,0 @@
-Rename this file to include your real student IDs before submission.
-Example: HW1_123456789_234567890_345678901.txt
