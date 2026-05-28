@@ -18,3 +18,5 @@ yolov8n-cls.pt
 
 .claude
 CLAUDE.md
+# QA stress-suite fixtures (auto-generated)
+qa/_fixtures/
