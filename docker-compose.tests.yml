@@ -9,5 +9,5 @@ services:
       - ./data:/app/data
     environment:
       JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
-      GITHUB_URL: ${GITHUB_URL:-https://github.com/WiederShahaf/picture-server}
+      GITHUB_URL: ${GITHUB_URL:-https://github.com/Wieder-Shahaf/picture-server}
     restart: unless-stopped
