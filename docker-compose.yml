@@ -1,0 +1,12 @@
+services:
+  web:
+    build: ./web
+    container_name: web
+    hostname: web
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+    restart: unless-stopped

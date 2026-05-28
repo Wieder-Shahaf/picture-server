@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PictureServer — Plan</title>
+<style>
+ body{font-family:-apple-system,Helvetica,Arial,sans-serif;max-width:880px;margin:2rem auto;padding:0 1rem;line-height:1.5;color:#222}
+ h1,h2,h3{line-height:1.2}
+ h2{border-bottom:1px solid #ccc;padding-bottom:.2em;margin-top:2em}
+ code,pre{font-family:ui-monospace,Menlo,Consolas,monospace}
+ pre{background:#f5f5f5;padding:.75em 1em;border-radius:6px;overflow-x:auto;font-size:.9em}
+ code{background:#f0f0f0;padding:0 .25em;border-radius:3px}
+ table{border-collapse:collapse;width:100%;font-size:.92em}
+ th,td{border:1px solid #ccc;padding:.4em .6em;text-align:left;vertical-align:top}
+ th{background:#eee}
+ ul li{margin:.2em 0}
+ .note{background:#fffbe6;border-left:3px solid #e0c000;padding:.5em .8em;margin:.5em 0}
+</style>
+</head>
+<body>
+<h1>PictureServer — Implementation Plan (frozen)</h1>
+<p>This page is a self-contained render of the approved plan, intended for the <code>/goal</code> auto-mode agent. The authoritative master is <code>/Users/shahafwieder/.claude/plans/cretae-a-pla-to-velvety-petal.md</code>; this file mirrors the binding sections.</p>
+
+<h2>Hard constraints (from HW1-2.pdf)</h2>
+<table>
+<tr><th>Constraint</th><th>Source</th></tr>
+<tr><td>Repo structure must be <b>exactly</b> the tree below</td><td>§Repository Structure</td></tr>
+<tr><td><code>test_interop_ID1_ID2_ID3.py</code> at the <b>repo root</b>, exactly <b>5 tests</b></td><td>§Interop Testing</td></tr>
+<tr><td>Compose file <code>docker-compose.tests.yml</code>; also ship <code>docker-compose.yml</code> copy so bare <code>docker-compose up</code> works</td><td>§Repository Structure</td></tr>
+<tr><td>Marker file <code>HW1_ID1_ID2_ID3.txt</code> at repo root (name matters, contents irrelevant)</td><td>§Submission</td></tr>
+<tr><td><code>docker-compose up</code> from repo root must start the server</td><td>§Repository Structure</td></tr>
+<tr><td><code>tests/</code> = pytest + requests, <b>black-box only</b> (no imports from <code>web/</code>)</td><td>§tests/</td></tr>
+<tr><td>Interop tests can only assert behaviors specified in <code>interface.md</code></td><td>§Important Technical Requirements</td></tr>
+<tr><td>At least one test per API endpoint in <code>tests/</code> (5 endpoints)</td><td>§Important Technical Requirements</td></tr>
+<tr><td>English file names only</td><td>§Important Technical Requirements</td></tr>
+<tr><td>Real working classifier required (no random/heuristic)</td><td>§Classification Quality</td></tr>
+<tr><td>Each score in <code>(0,1]</code>, sum in <code>[0,1]</code></td><td>§Classification Quality</td></tr>
+</table>
+
+<h2>Required repo structure</h2>
+<pre>Mini_Project/
+├── HW1_ID1_ID2_ID3.txt
+├── test_interop_ID1_ID2_ID3.py        (exactly 5 tests; BASE_URL from env)
+├── docker-compose.tests.yml
+├── docker-compose.yml                 (copy of the above)
+├── .gitignore  .dockerignore
+├── interface.md  HW1-2.pdf  lab05-2.pdf  Lecture Presentation Project Organization PDF.pdf
+├── data/                              (bind-mounted; SQLite lives here)
+├── tests/
+│   ├── __init__.py  conftest.py
+│   ├── fixtures/ (tiny.png, notimage.bin)
+│   ├── test_noam.py        (moved from root, unchanged)
+│   ├── test_register.py    test_login.py   test_logout.py
+│   └── test_classifier.py  test_status.py
+└── web/
+    ├── Dockerfile  main.py  requirements.txt
+    └── website/
+        ├── __init__.py     (create_app factory)
+        ├── auth.py         (Blueprint: /register /login /logout)
+        ├── views.py        (Blueprint: /classifier /status)
+        ├── models.py       (sqlite3 layer)
+        ├── classifier.py   (YOLOv8n-cls wrapper)
+        ├── status_tracker.py
+        └── errors.py</pre>
+
+<h2>Locked decisions</h2>
+<ul>
+<li><b>Framework:</b> Flask (synchronous).</li>
+<li><b>Classifier:</b> Ultralytics YOLOv8n-cls; weights baked into the image at build; sentinel inference at boot sets <code>health</code>.</li>
+<li><b>Persistence:</b> SQLite in <code>/app/data/app.db</code>, WAL mode, bind-mounted to <code>./data/app.db</code>; bcrypt password hashes; persistent JWT-revocation table.</li>
+<li><b>Tokens:</b> JWT HS256 with <code>sub</code>, <code>jti</code>, <code>iat</code>, <code>exp=+24h</code>. <code>/logout</code> inserts <code>jti</code> into <code>revoked_tokens</code>.</li>
+<li><b>Port:</b> 5000. <b>Host:</b> <code>0.0.0.0</code>.</li>
+<li><b>Imports:</b> absolute inside <code>website/</code>; no <code>from x import *</code>.</li>
+<li><b>Contract target:</b> <code>docker-compose up</code> from repo root.</li>
+</ul>
+
+<h2>SPEC CORNERS (survival guide)</h2>
+<ol>
+<li>Error envelope <code>{"error":{"http_status":N,"message":"..."}}</code> on every error path, with <code>Content-Type: application/json</code>, and <b>N == response.status_code</b>. Override Flask defaults for 400/401/404/405/500 + generic Exception.</li>
+<li>Bearer parsing: exact <code>Bearer &lt;token&gt;</code>; missing/malformed/expired/bad-signature/revoked → 401.</li>
+<li>JSON body: missing fields or non-JSON → 400 (use <code>get_json(silent=True)</code>).</li>
+<li>Wrong method → 405 with envelope (not HTML).</li>
+<li>No redirects (<code>app.url_map.strict_slashes = False</code>).</li>
+<li><code>/register</code> 201 body exactly <code>{"message":"User registered successfully"}</code>.</li>
+<li><code>/logout</code> 200 body exactly <code>{"message":"Logged out successfully"}</code>.</li>
+<li><code>/login</code> 200 body contains <code>token</code>.</li>
+<li><code>/status</code> body schema exact; <code>uptime</code> is <b>fractional float</b> (e.g. 230.7); <code>api_version: 1</code>.</li>
+<li>Counter rules: <code>/classifier</code> 200 → success++; <code>/classifier</code> 400 → fail++; <code>/classifier</code> 401 → no change; 5xx → no change; other endpoints never touch counters.</li>
+<li>Classifier response: <code>{"matches":[{"name":str,"score":float}...]}</code>; each score <code>0&lt;score≤1</code>; sum ≤ 1; drop zero scores.</li>
+<li>Persistence across container restarts: users + revoked tokens must survive.</li>
+<li>Thread safety on counters (<code>threading.Lock</code>) + SQLite WAL.</li>
+<li>Idempotent logout: re-using a revoked token → 401.</li>
+<li>No stack-trace leak on 500.</li>
+</ol>
+
+<h2>Our 5 interop tests (bug-magnets)</h2>
+<ul>
+<li><b>T1</b> — Error envelope <code>http_status</code> field matches HTTP code across 400/401/405/409.</li>
+<li><b>T2</b> — Counter accuracy: 1 valid PNG → +1 success; 2 malformed → +2 fail.</li>
+<li><b>T3</b> — <code>/logout</code> actually revokes: protected call with the same token after logout → 401.</li>
+<li><b>T4</b> — <code>/status.uptime</code> is fractional and strictly grows by ≥ 1.0 s.</li>
+<li><b>T5</b> — Classifier score invariants: each in (0,1], sum ≤ 1.</li>
+</ul>
+<p>Each test is anchored to an explicit sentence in <code>interface.md</code>. No probing of unspecified behavior.</p>
+
+<h2>Auto-Goal Instructions (operational)</h2>
+<ol>
+<li>Read <code>interface.md</code>, <code>HW1-2.pdf</code>, and the plan before writing code.</li>
+<li>Materialize the directory tree exactly. Use literal <code>ID1_ID2_ID3</code> placeholders.</li>
+<li>Move <code>test_noam.py</code> into <code>tests/</code> unchanged.</li>
+<li>Build modules in dependency order: <code>errors.py → models.py → status_tracker.py → classifier.py → auth.py → views.py → __init__.py → main.py → Dockerfile → compose → conftest.py → tests → interop → marker → fixtures</code>. Commit after each compiles.</li>
+<li>Smoke-import each module before moving on. Absolute imports only. No <code>from x import *</code>.</li>
+<li>Once Docker exists, <code>docker compose build</code> must pass before continuing.</li>
+<li><code>host='0.0.0.0'</code> in <code>main.py</code>, never <code>127.0.0.1</code>.</li>
+<li>Verify every SPEC CORNER against the live container before moving on.</li>
+<li>Exactly 5 interop tests; each anchored to interface.md.</li>
+<li>After tests green and interop tests pass against our own server, commit. Omit <code>Co-Authored-By: Claude</code> trailer.</li>
+<li>No features outside <code>interface.md</code>.</li>
+<li>If YOLO weights fail to download during build, halt and report.</li>
+</ol>
+
+<h2>Stop Criteria (all must be true)</h2>
+<ul>
+<li><code>docker compose build</code> green; weights at <code>/opt/weights/yolov8n-cls.pt</code>.</li>
+<li><code>docker-compose up -d</code> from repo root; <code>/status</code> without token → 401 with envelope; with token → <code>health:"ok"</code>, <code>api_version:1</code>, fractional <code>uptime</code>, within 30 s.</li>
+<li><code>python -m pytest -v</code> from repo root: 0 failures; ≥1 test per endpoint; <code>test_noam.py</code> passes.</li>
+<li><code>python -m pytest -v test_interop_ID1_ID2_ID3.py</code>: exactly 5 tests, all green against our own server.</li>
+<li>Every error path: <code>application/json</code>, envelope present, <code>http_status</code> matches HTTP code.</li>
+<li>Counters: +1 success on valid PNG; +1 fail on malformed; no change on auth fail.</li>
+<li>Persistence verified across <code>docker compose down &amp;&amp; up -d</code>.</li>
+<li><code>grep -rn "import \*" web/</code> returns nothing.</li>
+<li>Repo root contents match the required set exactly.</li>
+<li>Interop file has exactly 5 <code>def test_*</code> functions reading <code>BASE_URL</code> from env.</li>
+</ul>
+
+<div class="note">If any criterion fails after 3 consecutive fix attempts on the same item, halt and surface the failure rather than mutating further.</div>
+</body>
+</html>
