@@ -411,7 +411,7 @@ html[data-auth="in"] #card-upload::before   { background: var(--acc-ready); }
   text-transform: none;
   min-height: auto;
 }
-.mode-toggle:hover { color: var(--link); background: transparent; }
+.mode-toggle:hover:not(:disabled) { color: var(--link); background: transparent; border-color: transparent; }
 
 .signed-body { padding: 1rem .95rem 1.15rem; }
 .signed-meta { margin: 0; font-size: .78rem; color: var(--fg-2); }
