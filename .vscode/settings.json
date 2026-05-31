@@ -1,0 +1,19 @@
+{
+  "python.useEnvironmentsExtension": false,
+  "python.experiments.enabled": false,
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/qa",
+    "${workspaceFolder}/tests",
+    "${workspaceFolder}/web"
+  ],
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": [
+    "tests",
+    "qa"
+  ],
+  "python.testing.cwd": "${workspaceFolder}",
+
+  "pyrefly.pythonInterpreter": "${workspaceFolder}/.venv/bin/python3",
+  "python.pyrefly.typeCheckingMode": "basic"
+}
+

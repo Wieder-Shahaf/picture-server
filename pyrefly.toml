@@ -1,0 +1,6 @@
+# Pyrefly configuration — tells the type checker to use the project's .venv
+# so all imports (flask, pyjwt, bcrypt, pytest, playwright, etc.) resolve correctly.
+python-interpreter = ".venv/bin/python3"
+
+# Add project source directories to the import search path
+search-path = ["qa", "tests", "web"]
