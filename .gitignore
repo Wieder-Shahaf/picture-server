@@ -27,3 +27,5 @@ PLAN.html
 HW1_ID1_ID2_ID3.txt
 
 tests/_e2e_screens/
+# Local-only compose overrides
+docker-compose.override.yml
