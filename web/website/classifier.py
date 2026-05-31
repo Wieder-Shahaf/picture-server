@@ -35,10 +35,17 @@ def classify(file_bytes: bytes, filename: str):
 
     try:
         probe = Image.open(BytesIO(file_bytes))
+        fmt = probe.format          # actual decoded format: 'PNG' | 'JPEG' | 'GIF' | ...
         probe.verify()
         img = Image.open(BytesIO(file_bytes)).convert("RGB")
     except Exception as exc:
         raise MalformedImage("undecodable image bytes") from exc
+
+    # interface.md: 'Supported image types SHALL be PNG and JPEG.'
+    # Enforce by actual content, not just the filename — GIF/WEBP/BMP bytes
+    # named .png must still be rejected.
+    if fmt not in ("PNG", "JPEG"):
+        raise MalformedImage(f"unsupported image format: {fmt}")
 
     if _model is None:
         raise MalformedImage("classifier not loaded")
