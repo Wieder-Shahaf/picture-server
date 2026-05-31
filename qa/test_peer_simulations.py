@@ -421,6 +421,28 @@ class TestClassifierResultCardinality:
         assert r.status_code == 400, \
             f"uppercase .PNG should be rejected per literal spec, got {r.status_code}"
 
+    def test_gif_bytes_named_png_rejected_per_spec(self, base_url, bearer):
+        # interface.md: 'Supported image types SHALL be PNG and JPEG.'
+        # Real GIF bytes (even named .png) are not a supported type → 400.
+        from io import BytesIO
+        from PIL import Image
+        buf = BytesIO(); Image.new("RGB", (32, 32), "blue").save(buf, "GIF")
+        r = requests.post(f"{base_url}/classifier", headers=bearer,
+                          files={"image": ("trick.png", buf.getvalue(), "image/png")},
+                          timeout=30)
+        assert r.status_code == 400, \
+            f"GIF content named .png must be rejected per 'PNG and JPEG' spec, got {r.status_code}"
+
+    def test_lowercase_bearer_scheme_accepted(self, base_url, fresh_user):
+        # RFC 7235: auth-scheme is case-insensitive.
+        u, p = fresh_user
+        requests.post(f"{base_url}/register", json={"username": u, "password": p}, timeout=10)
+        tok = requests.post(f"{base_url}/login",
+                            json={"username": u, "password": p}, timeout=10).json()["token"]
+        r = requests.get(f"{base_url}/status",
+                         headers={"Authorization": f"bearer {tok}"}, timeout=10)
+        assert r.status_code == 200, f"lowercase 'bearer' scheme should be accepted, got {r.status_code}"
+
     def test_valid_image_returns_at_least_one_match(self, base_url, bearer, png_path):
         with open(png_path, "rb") as f:
             r = requests.post(f"{base_url}/classifier", headers=bearer,
