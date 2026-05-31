@@ -4,21 +4,28 @@ Each test asserts only behaviors explicitly required by interface.md.
 BASE_URL is read from env (default http://localhost:5000) so the grader's
 runner can point the suite at any target server.
 """
+import base64
 import os
 import uuid
-from io import BytesIO
 
 import pytest
 import requests
 
 BASE_URL = os.environ.get("BASE_URL", "http://localhost:5000")
 
+# A real, decodable 64x64 PNG embedded as base64 so this file depends ONLY on
+# the assignment-mandated packages (pytest + requests) plus the stdlib — no
+# Pillow/numpy needed, since the grading framework may not have them installed.
+_PNG_B64 = (
+    "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAgElEQVR4nNXOQREAIAzAsFJl"
+    "SEMeshCxB9coyDr7UiZxEidxEidxEidxEidxEidxEidxEidxEidxEidxEidxEidxEidxEidx"
+    "EidxEidxEidxEidxEidxEidxEidxEidxEidxEidxEidxEidxEidxEidxEidxEidxEidxEufv"
+    "wNQDI/ICCL1NBWAAAAAASUVORK5CYII="
+)
+
 
 def _png_bytes() -> bytes:
-    from PIL import Image
-    buf = BytesIO()
-    Image.new("RGB", (64, 64), color=(128, 64, 200)).save(buf, format="PNG")
-    return buf.getvalue()
+    return base64.b64decode(_PNG_B64)
 
 
 def _register_and_login() -> str:
