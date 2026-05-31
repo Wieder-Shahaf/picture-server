@@ -34,7 +34,8 @@ def _decode_bearer(header_value: str):
     if not header_value or not isinstance(header_value, str):
         return None
     parts = header_value.split(" ")
-    if len(parts) != 2 or parts[0] != "Bearer" or not parts[1]:
+    # RFC 7235: the auth-scheme token is case-insensitive. Accept 'bearer' too.
+    if len(parts) != 2 or parts[0].lower() != "bearer" or not parts[1]:
         return None
     try:
         payload = jwt.decode(parts[1], _secret(), algorithms=[ALGO])
