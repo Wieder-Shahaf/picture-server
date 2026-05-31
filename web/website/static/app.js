@@ -152,18 +152,24 @@
     state.mode = mode;
     const btnText = $("#auth-form .submit-auth [data-text]");
     const linkText = $("[data-mode-text]");
+    const cardTitle = $("#card-auth-h [data-show='out']");
     if (mode === "login") {
       btnText.textContent = "Sign in";
       linkText.textContent = "No account? Create one →";
+      document.title = "Sign in | PictureServer";
+      if (cardTitle) cardTitle.textContent = "SIGN IN";
     } else {
       btnText.textContent = "Create account";
       linkText.textContent = "Have an account? Sign in →";
+      document.title = "Sign up | PictureServer";
+      if (cardTitle) cardTitle.textContent = "SIGN UP";
     }
   }
   function showSession(user) {
     state.user = user;
     localStorage.setItem(LS_USER, user);
     $("#who").textContent = user;
+    document.title = "PictureServer";
     setAuthState(true);
     refreshStatus();
   }
