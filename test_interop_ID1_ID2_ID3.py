@@ -5,7 +5,6 @@ BASE_URL is read from env (default http://localhost:5000) so the grader's
 runner can point the suite at any target server.
 """
 import os
-import time
 import uuid
 from io import BytesIO
 
@@ -111,19 +110,29 @@ def test_interop_logout_revokes_token():
     assert body["error"]["http_status"] == 401
 
 
-def test_interop_status_uptime_is_fractional_float_and_grows():
-    """T4: /status.uptime must be in fractional seconds and strictly increase between calls.
-    interface.md says 'The uptime value is in fractional seconds, e.g. 55.6'."""
+def test_interop_classifier_rejects_unsupported_filename_extension():
+    """T4: an upload whose filename does NOT end in '.png' or '.jpeg' must be
+    rejected with 400. interface.md is explicit:
+        'The images uploaded MUST end in \".png\" or \".jpeg\".'
+    We send valid PNG bytes under the name 'photo.PNG' (uppercase) — which does
+    NOT end in the lowercase '.png' the spec mandates. A spec-compliant server
+    returns 400; a server that lowercases the filename before checking (the
+    common shortcut) wrongly returns 200 and is caught here."""
     token = _register_and_login()
     headers = {"Authorization": f"Bearer {token}"}
-    s1 = requests.get(f"{BASE_URL}/status", headers=headers, timeout=10).json()["status"]
-    time.sleep(1.2)
-    s2 = requests.get(f"{BASE_URL}/status", headers=headers, timeout=10).json()["status"]
-    u1, u2 = s1["uptime"], s2["uptime"]
-    assert isinstance(u1, (int, float)) and isinstance(u2, (int, float))
-    assert u2 - u1 >= 1.0, f"uptime didn't grow by >=1s: u1={u1}, u2={u2}"
-    fractional = (u1 != int(u1)) or (u2 != int(u2))
-    assert fractional, f"uptime must be fractional (spec example: 55.6), got u1={u1}, u2={u2}"
+    r = requests.post(
+        f"{BASE_URL}/classifier",
+        headers=headers,
+        files={"image": ("photo.PNG", _png_bytes(), "image/png")},
+        timeout=60,
+    )
+    assert r.status_code == 400, (
+        "filename 'photo.PNG' does not end in '.png'/'.jpeg' (spec: MUST), "
+        f"expected 400, got {r.status_code}: {r.text[:200]}"
+    )
+    body = r.json()
+    assert body["error"]["http_status"] == 400, \
+        f"error envelope http_status must equal 400, got {body}"
 
 
 def test_interop_classifier_score_invariants():
