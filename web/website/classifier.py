@@ -27,7 +27,9 @@ def health() -> bool:
 
 
 def classify(file_bytes: bytes, filename: str):
-    name = (filename or "").lower()
+    # interface.md is literal: 'images uploaded MUST end in ".png" or ".jpeg"'.
+    # Match it exactly (case-sensitive) — ".PNG"/".JPEG" do NOT satisfy the spec.
+    name = filename or ""
     if not (name.endswith(".png") or name.endswith(".jpeg")):
         raise MalformedImage("filename must end with .png or .jpeg")
 
