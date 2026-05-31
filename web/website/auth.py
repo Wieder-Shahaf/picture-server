@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -60,22 +62,23 @@ def require_auth(fn):
     return wrapper
 
 
-def _read_json_fields():
+def _read_json_fields() -> tuple[str, str] | None:
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
-        return None, None
+        return None
     u = data.get("username")
     p = data.get("password")
     if not isinstance(u, str) or not isinstance(p, str) or not u or not p:
-        return None, None
+        return None
     return u, p
 
 
 @auth.route("/register", methods=["POST"])
 def register():
-    u, p = _read_json_fields()
-    if u is None:
+    creds = _read_json_fields()
+    if creds is None:
         return make_error(400, "Missing or invalid username/password")
+    u, p = creds
     pw_hash = bcrypt.hashpw(p.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     if not create_user(u, pw_hash):
         return make_error(409, "Username already exists")
@@ -84,9 +87,10 @@ def register():
 
 @auth.route("/login", methods=["POST"])
 def login():
-    u, p = _read_json_fields()
-    if u is None:
+    creds = _read_json_fields()
+    if creds is None:
         return make_error(400, "Missing or invalid username/password")
+    u, p = creds
     row = get_user(u)
     if row is None:
         return make_error(401, "Invalid username or password")
