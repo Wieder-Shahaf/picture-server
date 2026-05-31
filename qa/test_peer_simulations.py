@@ -411,6 +411,16 @@ class TestClassifierResultCardinality:
     """spec example shows 2 matches.  Doesn't say minimum/maximum.
        But on a real image a peer would expect AT LEAST 1 match."""
 
+    def test_uppercase_extension_rejected_per_spec(self, base_url, bearer, png_path):
+        # interface.md: 'The images uploaded MUST end in ".png" or ".jpeg"'.
+        # ".PNG" does not end in ".png" → spec-literal peers expect 400.
+        with open(png_path, "rb") as f:
+            r = requests.post(f"{base_url}/classifier", headers=bearer,
+                              files={"image": ("cat.PNG", f, "image/png")},
+                              timeout=30)
+        assert r.status_code == 400, \
+            f"uppercase .PNG should be rejected per literal spec, got {r.status_code}"
+
     def test_valid_image_returns_at_least_one_match(self, base_url, bearer, png_path):
         with open(png_path, "rb") as f:
             r = requests.post(f"{base_url}/classifier", headers=bearer,
