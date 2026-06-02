@@ -1,4 +1,5 @@
 import os
+import threading
 from io import BytesIO
 
 from PIL import Image
@@ -7,6 +8,7 @@ from website.errors import MalformedImage
 
 _model = None
 _healthy = False
+_inference_lock = threading.Lock()
 
 
 def boot():
@@ -50,7 +52,8 @@ def classify(file_bytes: bytes, filename: str):
     if _model is None:
         raise MalformedImage("classifier not loaded")
 
-    results = _model(img, verbose=False)
+    with _inference_lock:
+        results = _model(img, verbose=False)
     if not results:
         raise MalformedImage("no inference result")
 
@@ -80,5 +83,8 @@ def classify(file_bytes: bytes, filename: str):
     if not matches and raw:
         n, s = raw[0]
         matches.append({"name": n, "score": min(s, 1.0)})
+
+    if not matches:
+        raise RuntimeError("classifier returned no results")
 
     return matches
