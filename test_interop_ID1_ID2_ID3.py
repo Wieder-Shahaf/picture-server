@@ -117,36 +117,72 @@ def test_interop_logout_revokes_token():
     assert body["error"]["http_status"] == 401
 
 
-def test_interop_classifier_rejects_unsupported_filename_extension():
-    """T4: an upload whose filename does NOT end in '.png' or '.jpeg' must be
-    rejected with 400. interface.md is explicit:
-        'The images uploaded MUST end in \".png\" or \".jpeg\".'
-    We send valid PNG bytes under the name 'photo.PNG' (uppercase) — which does
-    NOT end in the lowercase '.png' the spec mandates. A spec-compliant server
-    returns 400; a server that lowercases the filename before checking (the
-    common shortcut) wrongly returns 200 and is caught here."""
-    token = _register_and_login()
-    headers = {"Authorization": f"Bearer {token}"}
-    r = requests.post(
-        f"{BASE_URL}/classifier",
-        headers=headers,
-        files={"image": ("photo.PNG", _png_bytes(), "image/png")},
-        timeout=60,
+def test_interop_spec_literal_response_formats():
+    """T4: three spec-literal requirements that AI-generated servers commonly get wrong.
+
+    (a) POST /register must return 201, not 200.
+        interface.md: '201: user created successfully'
+
+    (b) POST /login body must contain the key 'token', not 'access_token'.
+        interface.md: 'json body SHALL contain the token: {"token": "eyJ..."}'
+
+    (c) Filenames 'photo.PNG' (uppercase) and 'photo.jpg' (wrong suffix) must
+        both be rejected with 400.
+        interface.md: 'images uploaded MUST end in \".png\" or \".jpeg\"'
+        '.jpg' is a common JPEG extension but is NOT '.jpeg' per the spec.
+    """
+    u = f"i_{uuid.uuid4().hex[:10]}"
+    pw = "Password!123"
+
+    # (a) register → 201
+    r_reg = requests.post(f"{BASE_URL}/register", json={"username": u, "password": pw}, timeout=10)
+    assert r_reg.status_code == 201, \
+        f"register must return 201 (not {r_reg.status_code}): {r_reg.text[:200]}"
+
+    # (b) login → {"token": "..."}
+    r_login = requests.post(f"{BASE_URL}/login", json={"username": u, "password": pw}, timeout=10)
+    assert r_login.status_code == 200, f"login failed: {r_login.status_code} {r_login.text}"
+    login_body = r_login.json()
+    assert "token" in login_body, (
+        f"login response must have key 'token', got keys: {list(login_body.keys())}"
     )
-    assert r.status_code == 400, (
-        "filename 'photo.PNG' does not end in '.png'/'.jpeg' (spec: MUST), "
-        f"expected 400, got {r.status_code}: {r.text[:200]}"
-    )
-    body = r.json()
-    assert body["error"]["http_status"] == 400, \
-        f"error envelope http_status must equal 400, got {body}"
+    assert isinstance(login_body["token"], str) and login_body["token"], \
+        "login 'token' must be a non-empty string"
+
+    # (c) bad extensions → 400
+    headers = {"Authorization": f"Bearer {login_body['token']}"}
+    for bad_name in ("photo.PNG", "photo.jpg"):
+        r = requests.post(
+            f"{BASE_URL}/classifier",
+            headers=headers,
+            files={"image": (bad_name, _png_bytes(), "image/png")},
+            timeout=60,
+        )
+        assert r.status_code == 400, (
+            f"filename '{bad_name}' must be rejected with 400, got {r.status_code}: {r.text[:200]}"
+        )
+        assert r.json()["error"]["http_status"] == 400, \
+            f"error envelope http_status must equal 400 for '{bad_name}'"
 
 
-def test_interop_classifier_score_invariants():
-    """T5: every match score is in (0, 1] and sum of scores is in [0, 1].
-    interface.md §classifier response: '0.0 < score <= 1.0' and 'sum ... between 0 and 1'."""
+def test_interop_classifier_score_and_status_structure():
+    """T5: classifier score invariants + /status response structure.
+
+    Score invariants (interface.md §classifier):
+      - each score: 0.0 < score <= 1.0
+      - sum of scores: 0 <= total <= 1.0
+
+    /status structure (interface.md §Get server status):
+      - response wrapped as {"status": {...}}  (not a flat object)
+      - processed has exact keys 'success' and 'fail' (not 'successes'/'failures')
+      - 'success' and 'fail' are integers
+      - api_version is the integer 1 (not the string "1")
+      - health is exactly "ok" or "error"
+    """
     token = _register_and_login()
     headers = {"Authorization": f"Bearer {token}"}
+
+    # score invariants
     r = requests.post(
         f"{BASE_URL}/classifier",
         headers=headers,
@@ -154,9 +190,9 @@ def test_interop_classifier_score_invariants():
         timeout=60,
     )
     assert r.status_code == 200, f"/classifier on valid PNG should be 200: {r.status_code} {r.text}"
-    body = r.json()
-    assert "matches" in body, f"missing 'matches' key: {body}"
-    matches = body["matches"]
+    clf_body = r.json()
+    assert "matches" in clf_body, f"missing 'matches' key: {clf_body}"
+    matches = clf_body["matches"]
     assert isinstance(matches, list) and matches, "matches must be a non-empty list"
     total = 0.0
     for m in matches:
@@ -166,6 +202,27 @@ def test_interop_classifier_score_invariants():
         assert 0 < s <= 1, f"score {s} not in (0, 1]"
         total += s
     assert 0 <= total <= 1.0 + 1e-6, f"sum of scores {total} not in [0, 1]"
+
+    # /status structure
+    r_st = requests.get(f"{BASE_URL}/status", headers=headers, timeout=10)
+    assert r_st.status_code == 200, f"/status failed: {r_st.status_code} {r_st.text}"
+    st_body = r_st.json()
+    assert "status" in st_body, \
+        f"/status response must be wrapped as {{\"status\": {{...}}}}, got keys: {list(st_body.keys())}"
+    st = st_body["status"]
+    proc = st.get("processed", {})
+    assert "success" in proc, \
+        f"processed must have key 'success', got: {list(proc.keys())}"
+    assert "fail" in proc, \
+        f"processed must have key 'fail', got: {list(proc.keys())}"
+    assert isinstance(proc["success"], int), \
+        f"processed.success must be an integer, got {type(proc['success']).__name__}: {proc['success']!r}"
+    assert isinstance(proc["fail"], int), \
+        f"processed.fail must be an integer, got {type(proc['fail']).__name__}: {proc['fail']!r}"
+    assert st.get("api_version") == 1, \
+        f"api_version must be the integer 1, got: {st.get('api_version')!r}"
+    assert st.get("health") in ("ok", "error"), \
+        f"health must be 'ok' or 'error', got: {st.get('health')!r}"
 
 
 if __name__ == "__main__":
