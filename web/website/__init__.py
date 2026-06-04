@@ -1,8 +1,8 @@
 import os
 
-from flask import Flask
+from flask import Flask, request
 
-from website import classifier
+from website import classifier, throttle
 from website.auth import auth as auth_bp
 from website.errors import register_error_handlers
 from website.models import close_conn, init_db
@@ -21,6 +21,11 @@ def create_app():
     register_error_handlers(app)
     init_db()
     classifier.boot()
+
+    @app.before_request
+    def _throttle():
+        # Spec-safe tarpit: delays abusive clients, never changes status codes.
+        throttle.apply(request.path, request.method)
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(views_bp)
