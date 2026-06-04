@@ -25,5 +25,6 @@ qa/_fixtures/
 CLAUDE.md
 PLAN.html
 HW1_ID1_ID2_ID3.txt
+.vscode/
 
 tests/_e2e_screens/
