@@ -74,18 +74,18 @@ curl -s localhost:5000/status -H "Authorization: Bearer $TOKEN" | jq .
 ```bash
 docker compose up -d                              #  server first
 
-python -m pytest tests/                           #  18  endpoint tests   (graded)
-python -m pytest test_interop_*.py                #   5  interop tests    (graded)
-python -m pytest qa/                              # 247  stress tests     (qa only)
+python -m pytest tests/                           #  19  endpoint tests   (graded)
+python -m pytest interop_tests/                   #   5  interop tests    (graded)
+python -m pytest qa/                              # 253  stress tests     (qa only)
 ```
 
 ```
 ┌────────────────────────────┬────────┬──────────────────────────────────────┐
 │ SUITE                      │ COUNT  │ FOCUS                                │
 ├────────────────────────────┼────────┼──────────────────────────────────────┤
-│ tests/                     │   18   │ endpoint coverage, contract          │
-│ test_interop_*.py          │    5   │ bug-magnet probes for peer servers   │
-│ qa/                        │  247   │ stress · security · concurrency · ui │
+│ tests/                     │   19   │ endpoint coverage, contract          │
+│ interop_tests/             │    5   │ bug-magnet probes for peer servers   │
+│ qa/                        │  253   │ stress · security · concurrency · ui │
 └────────────────────────────┴────────┴──────────────────────────────────────┘
 ```
 
@@ -127,8 +127,8 @@ build layer.  Bind-mounted `./data` keeps SQLite across rebuilds.
 .
 ├── docker-compose.yml   docker-compose.tests.yml      # entry point
 ├── interface.md                                       # the contract
-├── test_interop_ID1_ID2_ID3.py                        # 5 interop tests
-├── tests/                                             # graded suite (18)
+├── interop_tests/                                     # 5 interop tests
+├── tests/                                             # graded suite (19)
 ├── web/                                               # server source
 │   ├── Dockerfile   main.py   requirements.txt
 │   └── website/     blueprints · models · classifier · errors
