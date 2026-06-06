@@ -180,6 +180,10 @@
     localStorage.removeItem(LS_USER);
     setAuthState(false);
     setMode("login");
+    // Drop any stale auth status line (e.g. the green "signed in" message) so the
+    // logged-out form doesn't keep showing it after the session is cleared.
+    const authMsg = $("#auth-msg");
+    if (authMsg) { authMsg.textContent = ""; authMsg.className = "hint"; }
     ["m-uptime", "m-success", "m-fail", "m-api"].forEach((id) => {
       $("#" + id).textContent = id === "m-api" ? "v1" : "—";
     });

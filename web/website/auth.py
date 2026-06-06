@@ -64,6 +64,12 @@ def _decode_bearer(header_value: str):
         return None
     if is_revoked(payload["jti"]):
         return None
+    # The token is a stateless JWT, so a valid signature alone does not prove the
+    # account still exists. Confirm the subject is still a real user — otherwise a
+    # deleted account would keep authenticating until its 24h expiry. This makes
+    # account deletion take effect on the very next authenticated request.
+    if get_user(payload["sub"]) is None:
+        return None
     return payload
 
 
