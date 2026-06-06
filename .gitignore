@@ -24,11 +24,12 @@ qa/_fixtures/
 # Project-local files — not for the public repo
 CLAUDE.md
 PLAN.html
-HW1_ID1_ID2_ID3.txt
+HW1_318159506_323651281_207283888.txt
 .vscode/
 pyrefly.toml
 pytest.ini
-
 tests/_e2e_screens/
+HW1_318159506_323651281_207283888.mov
+
 # Local-only compose overrides
 docker-compose.override.yml
