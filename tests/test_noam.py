@@ -1,11 +1,17 @@
+import os
 import uuid
 
 import requests
 
 
 def base_url() -> str:
+    # Honor BASE_URL when set (e.g. http://localhost:15000 locally, since macOS
+    # AirPlay squats port 5000); fall back to the spec default :5000 for the grader.
+    env = os.environ.get("BASE_URL")
+    if env:
+        return env.rstrip("/")
     host = "localhost"
-    port = "5000" #TODO: REMEMBER TO CHANGE TO THE PORT YOUR SERVER IS RUNNING ON
+    port = "5000"
     return f"http://{host}:{port}"
 
 

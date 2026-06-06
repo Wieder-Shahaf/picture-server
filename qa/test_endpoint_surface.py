@@ -141,6 +141,40 @@ class TestRegister:
         if r.status_code >= 400:
             envelope_ok(r, r.status_code)
 
+    def test_usernames_are_case_sensitive(self, base_url):
+        """`username TEXT PRIMARY KEY` uses SQLite's binary (case-sensitive)
+        collation and the server does no normalization, so "case_x" and
+        "Case_x" are two distinct accounts. Assert the concrete contract:
+        both register, each logs in with its own password, and neither
+        account's password unlocks the other — proving separate records,
+        not a normalized collision."""
+        stem = uuid.uuid4().hex[:8]
+        u_lower = f"case_{stem}"
+        u_upper = f"Case_{stem}"
+        pw_lower = "pw-lower-secret"
+        pw_upper = "pw-upper-secret"
+
+        r1 = requests.post(f"{base_url}/register",
+                           json={"username": u_lower, "password": pw_lower}, timeout=10)
+        assert r1.status_code == 201
+
+        r2 = requests.post(f"{base_url}/register",
+                           json={"username": u_upper, "password": pw_upper}, timeout=10)
+        assert r2.status_code == 201, \
+            "case-variant username treated as duplicate; usernames must be case-sensitive"
+
+        # Each account logs in with its OWN password.
+        for u, p in ((u_lower, pw_lower), (u_upper, pw_upper)):
+            r = requests.post(f"{base_url}/login",
+                              json={"username": u, "password": p}, timeout=10)
+            assert r.status_code == 200, f"{u!r} could not log in with its own password"
+
+        # The other casing's password must NOT unlock this account -> truly distinct.
+        r_cross = requests.post(f"{base_url}/login",
+                                json={"username": u_lower, "password": pw_upper}, timeout=10)
+        assert r_cross.status_code == 401, \
+            "cross-casing password succeeded; the two accounts are not distinct records"
+
 
 # ───────────────────────── /login edge cases ─────────────────────────
 class TestLogin:
