@@ -158,6 +158,10 @@ def test_interop_auth_enforcement_matrix():
       (c) auth precedence: /classifier with NO token but a (bad) upload -> 401,
           never 400 (auth is checked before the file)
       (d) /logout invalidates the token: a revoked token -> 401 afterwards
+      (e) bcrypt-truncation: a wrong password that shares the first 72 bytes
+          with the real one is still an INVALID password -> 401. Servers that
+          hash with raw bcrypt truncate the input at 72 bytes and would wrongly
+          accept it (200), violating "401: invalid username or password".
     """
     # (a) wrong password -> 401 (a registered user, wrong secret).
     u = f"i_{uuid.uuid4().hex[:10]}"
@@ -185,6 +189,23 @@ def test_interop_auth_enforcement_matrix():
     r_logout = requests.post(f"{BASE_URL}/logout", headers=headers, timeout=10)
     assert r_logout.status_code == 200, f"/logout should be 200, got {r_logout.status_code}: {r_logout.text[:200]}"
     _assert_error_envelope(requests.get(f"{BASE_URL}/status", headers=headers, timeout=10), 401)
+
+    # (e) bcrypt-truncation: a wrong password sharing the first 72 bytes (bcrypt's
+    #     truncation boundary) with the real one must still be 401. interface.md
+    #     mandates no password policy, so the long password must register and the
+    #     CORRECT one must log in (no false positive on a compliant server); only
+    #     the suffix-differing wrong password is rejected.
+    base = "A" * 72  # bcrypt silently ignores everything past byte 72
+    u_trunc = f"i_{uuid.uuid4().hex[:10]}"
+    correct = base + "_correct_tail"
+    wrong = base + "_WRONGXX_tail"
+    r_reg = requests.post(f"{BASE_URL}/register", json={"username": u_trunc, "password": correct}, timeout=10)
+    assert r_reg.status_code == 201, f"register with long password must succeed: {r_reg.status_code} {r_reg.text[:200]}"
+    r_ok = requests.post(f"{BASE_URL}/login", json={"username": u_trunc, "password": correct}, timeout=10)
+    assert r_ok.status_code == 200, f"correct long password must log in: {r_ok.status_code} {r_ok.text[:200]}"
+    _assert_error_envelope(
+        requests.post(f"{BASE_URL}/login", json={"username": u_trunc, "password": wrong}, timeout=10), 401
+    )
 
 
 def test_interop_spec_literal_response_formats():
