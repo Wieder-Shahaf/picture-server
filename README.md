@@ -73,6 +73,7 @@ curl -s localhost:5000/status -H "Authorization: Bearer $TOKEN" | jq .
 
 ```bash
 docker compose up -d                              #  server first
+pip install -r requirements-test.txt              #  host-side test deps (pytest, requests)
 
 python -m pytest tests/                           #  19  endpoint tests   (graded)
 python -m pytest interop_tests/                   #   5  interop tests    (graded)

@@ -4,6 +4,14 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
 COPY requirements.txt .
+# Install CPU-only torch/torchvision FIRST. ultralytics pulls torch in
+# transitively, and the default PyPI wheels bundle the full CUDA/nvidia stack
+# (~2.5 GB) we never use — this container has no GPU. Pre-installing the CPU
+# wheels satisfies ultralytics' dependency, so the line below won't re-resolve
+# torch to the CUDA build.
+RUN pip install --user --no-cache-dir \
+      --index-url https://download.pytorch.org/whl/cpu \
+      torch torchvision
 RUN pip install --user --no-cache-dir -r requirements.txt
 RUN python -c "from ultralytics import YOLO; YOLO('yolov8n-cls.pt')" \
  && mkdir -p /opt/weights \

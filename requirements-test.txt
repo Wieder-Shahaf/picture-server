@@ -1,0 +1,5 @@
+# Host-side test dependencies. The server image (web/requirements.txt) does
+# NOT include these — the suites run over HTTP against the container, so
+# pytest/requests live on the host, not in the image.
+pytest>=8.0
+requests>=2.31
