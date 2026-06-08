@@ -24,6 +24,7 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 ENV PATH=/root/.local/bin:$PATH \
     PYTHONUNBUFFERED=1 \
+    YOLO_AUTOINSTALL=false \
     YOLO_WEIGHTS=/opt/weights/yolov8n-cls.pt \
     DB_PATH=/app/data/app.db
 COPY --from=builder /root/.local /root/.local
